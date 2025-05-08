@@ -1,0 +1,250 @@
+id: sap-netweaver-services-checks
+
+info:
+  name: SAP NetWeaver Service Detection
+  author: Nairuz Abulhul - R3d-Buck3T - https://medium.com/r3d-buck3t
+  description: |
+    This template detects the presence of SAP services on SAP NetWeaver endpoints, providing insights into potential access control issues or redirection behaviors. 
+  severity: info
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/irj/index.html"
+      - "{{BaseURL}}/irj/portal"
+      - "{{BaseURL}}/irj/portal/"
+      - "{{BaseURL}}/sap/"
+      - "{{BaseURL}}/irj/"
+      - "{{BaseURL}}/irj"
+      - "{{BaseURL}}/netweaver/"
+      - "{{BaseURL}}/VisualComposer/"
+      - "{{BaseURL}}/admin/"
+      - "{{BaseURL}}/sap/public/"
+      - "{{BaseURL}}/components/"
+      - "{{BaseURL}}/services/"
+      - "{{BaseURL}}/vc/"
+      - "{{BaseURL}}/devserver/"
+      - "{{BaseURL}}/km/"
+      - "{{BaseURL}}/servlet/"
+      - "{{BaseURL}}/upload/"
+      - "{{BaseURL}}/developmentserver/metadatauploader?CONTENTTYPE=MODEL&CLIENT=1"
+      - "{{BaseURL}}/VisualComposer/developmentserver/metadatauploader"
+      - "{{BaseURL}}/vc/developmentserver/metadatauploader"
+
+    headers:
+      User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36
+      Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+      Accept-Language: en-US,en;q=0.9
+      Accept-Encoding: gzip, deflate
+      Connection: keep-alive
+      Cache-Control: max-age=0
+      Referer: "{{BaseURL}}/"
+      Origin: "{{BaseURL}}"
+
+    extractors:
+    ####### 202 Status Code ######
+      - type: regex
+        part: header
+        name: status_200_header_message
+        regex:
+            - "(?i)(200\\s+OK|success|successful|request succeeded|operation completed|completed successfully|content loaded|page loaded)"
+
+      - type: regex
+        part: body
+        name: status_200_body_message
+        regex:
+          - "(?i)(200\\s+OK|success|successful|request succeeded|operation completed|completed successfully|content loaded|page loaded)"
+
+      ####### 303 Redirects Status Code ######
+      - type: regex
+        part: header
+        name: redirect_header_message
+        regex:
+          - "(?i)(301|302|303|307|308)\\s+(Moved Permanently|Found|See Other|Temporary Redirect|Permanent Redirect|Redirected)"
+          - "(?i)(redirecting.*|you are being redirected.*|click here if not redirected.*|this page has moved.*|page has been moved.*|page is temporarily unavailable.*|redirected by server.*)"
+          - "(?i)<meta\\s+http-equiv=[\"']refresh[\"']\\s+content=[\"']\\d+;\\s*url=(https?://[^\"']+)[\"']"
+          - "(?i)<title>\\s*(redirect.*|moved.*|see other.*|temporary redirect.*|page moved.*)\\s*</title>"
+
+      - type: regex
+        part: body
+        name: redirect_body_message
+        regex:
+          - "(?i)(301|302|303|307|308)\\s+(Moved Permanently|Found|See Other|Temporary Redirect|Permanent Redirect|Redirected)"
+          - "(?i)(redirecting.*|you are being redirected.*|click here if not redirected.*|this page has moved.*|page has been moved.*|page is temporarily unavailable.*|redirected by server.*)"
+          - "(?i)<meta\\s+http-equiv=[\"']refresh[\"']\\s+content=[\"']\\d+;\\s*url=(https?://[^\"']+)[\"']"
+          - "(?i)<title>\\s*(redirect.*|moved.*|see other.*|temporary redirect.*|page moved.*)\\s*</title>"
+
+      ####### 403 Forbidden Status Code ######
+      - type: regex
+        part: header
+        name: forbidden_header_message
+        regex:
+          - "(?i)(403\\s+Forbidden.*|access denied.*|permission denied.*|not authorized.*|authorization required.*|you do not have permission.*|forbidden by administrator.*|403.*)"
+          - "(?i)<title>\\s*(403.*|access denied.*|permission denied.*|not authorized.*|authorization required.*)\\s*</title>"
+          - "(?i)<h1>\\s*(403.*|access denied.*|permission denied.*|not authorized.*|authorization required.*)\\s*</h1>"
+          - "(?i)<p>\\s*(you do not have permission.*|forbidden.*|access denied.*)\\s*</p>"
+
+      - type: regex
+        part: body
+        name: forbidden_body_message
+        regex:
+          - "(?i)(403\\s+Forbidden.*|access denied.*|permission denied.*|not authorized.*|authorization required.*|you do not have permission.*|forbidden by administrator.*|403.*)"
+          - "(?i)<title>\\s*(403.*|access denied.*|permission denied.*|not authorized.*|authorization required.*)\\s*</title>"
+          - "(?i)<h1>\\s*(403.*|access denied.*|permission denied.*|not authorized.*|authorization required.*)\\s*</h1>"
+          - "(?i)<p>\\s*(you do not have permission.*|forbidden.*|access denied.*)\\s*</p>"
+
+      ####### 404 Not Found Status Code ######
+      - type: regex
+        part: header
+        name: notfound_header_message
+        regex:
+          - "(?i)(404|not[ -]?found|page[ -]?not[ -]?found|resource[ -]?not[ -]?found|requested[ -]?page[ -]?not[ -]?found|file[ -]?not[ -]?found)"
+
+      - type: regex
+        part: body
+        name: notfound_body_message
+        regex:
+          - "(?i)(404|not[ -]?found|page[ -]?not[ -]?found|resource[ -]?not[ -]?found|requested[ -]?page[ -]?not[ -]?found|file[ -]?not[ -]?found)"
+
+      ###### 500s Service Unvailable Status Code #######
+      - type: regex
+        part: header
+        name: server_error_header_message
+        regex:
+          - "(?i)(500\\s+Internal Server Error.*|server error.*|application error.*|an unexpected error occurred.*|unable to process your request.*|something went wrong.*|gateway timeout.*|service unavailable.*|bad gateway.*|not implemented.*)"
+          - "(?i)<title>\\s*(500.*|internal server error.*|server error.*|error page.*|service unavailable.*|gateway timeout.*)\\s*</title>"
+          - "(?i)<h1>\\s*(500.*|internal server error.*|server error.*|error page.*|service unavailable.*|gateway timeout.*)\\s*</h1>"
+          - "(?i)<p>\\s*(an unexpected error occurred.*|we are experiencing technical difficulties.*|please try again later.*)\\s*</p>"
+
+      - type: regex
+        part: body
+        name: server_error_body_message
+        regex:
+          - "(?i)(500\\s+Internal Server Error.*|server error.*|application error.*|an unexpected error occurred.*|unable to process your request.*|something went wrong.*|gateway timeout.*|service unavailable.*|bad gateway.*|not implemented.*)"
+          - "(?i)<title>\\s*(500.*|internal server error.*|server error.*|error page.*|service unavailable.*|gateway timeout.*)\\s*</title>"
+          - "(?i)<h1>\\s*(500.*|internal server error.*|server error.*|error page.*|service unavailable.*|gateway timeout.*)\\s*</h1>"
+          - "(?i)<p>\\s*(an unexpected error occurred.*|we are experiencing technical difficulties.*|please try again later.*)\\s*</p>"
+
+  ### Conditions ######
+    matchers-condition: or
+    matchers:
+
+    # Detect 202 Status Code Message in Header or Body
+      - type: status
+        status:
+          - 200
+        name: "200-status-ok"
+
+      - type: regex
+        part: header
+        regex:
+          - "(?i)(200\\s+OK|success|successful|request succeeded|operation completed|completed successfully|content loaded|page loaded)"
+        name: "200-status-ok-detected-in-header"
+
+      - type: regex
+        part: body
+        regex:
+          - "(?i)(200\\s+OK|success|successful|request succeeded|operation completed|completed successfully|content loaded|page loaded)"
+        name: "200-status-ok-detected-in-body"
+
+
+      # Detect Redirects 302 Message in Header or Body
+      - type: status
+        status:
+          - 301
+          - 302
+          - 303
+          - 307
+          - 308
+        name: "redirect-detected"
+
+      - type: regex
+        part: header
+        regex:
+          - "(?i)(301|302|303|307|308)\\s+(Moved Permanently|Found|See Other|Temporary Redirect|Permanent Redirect|Redirected)"
+          - "(?i)(redirecting.*|you are being redirected.*|click here if not redirected.*|this page has moved.*|page has been moved.*|page is temporarily unavailable.*|redirected by server.*)"
+          - "(?i)<meta\\s+http-equiv=[\"']refresh[\"']\\s+content=[\"']\\d+;\\s*url=(https?://[^\"']+)[\"']"
+          - "(?i)<title>\\s*(redirect.*|moved.*|see other.*|temporary redirect.*|page moved.*)\\s*</title>"
+        name: "redirect-detected-in-header"
+
+      - type: regex
+        part: body
+        regex:
+          - "(?i)(301|302|303|307|308)\\s+(Moved Permanently|Found|See Other|Temporary Redirect|Permanent Redirect|Redirected)"
+          - "(?i)(redirecting.*|you are being redirected.*|click here if not redirected.*|this page has moved.*|page has been moved.*|page is temporarily unavailable.*|redirected by server.*)"
+          - "(?i)<meta\\s+http-equiv=[\"']refresh[\"']\\s+content=[\"']\\d+;\\s*url=(https?://[^\"']+)[\"']"
+          - "(?i)<title>\\s*(redirect.*|moved.*|see other.*|temporary redirect.*|page moved.*)\\s*</title>"
+        name: "redirect-detected-in-body"
+
+
+      # Detect Forbidden 403 Message in Header or Body
+      - type: status
+        status:
+          - 403
+        name: "403-forbidden-detected"
+
+      - type: regex
+        part: header
+        regex:
+          - "(?i)(403\\s+Forbidden.*|access denied.*|permission denied.*|not authorized.*|authorization required.*|you do not have permission.*|forbidden by administrator.*|403.*)"
+          - "(?i)<title>\\s*(403.*|access denied.*|permission denied.*|not authorized.*|authorization required.*)\\s*</title>"
+          - "(?i)<h1>\\s*(403.*|access denied.*|permission denied.*|not authorized.*|authorization required.*)\\s*</h1>"
+          - "(?i)<p>\\s*(you do not have permission.*|forbidden.*|access denied.*)\\s*</p>"
+        name: "403-forbidden-detected-in-header"
+
+      - type: regex
+        part: body
+        regex:
+          - "(?i)(403\\s+Forbidden.*|access denied.*|permission denied.*|not authorized.*|authorization required.*|you do not have permission.*|forbidden by administrator.*|403.*)"
+          - "(?i)<title>\\s*(403.*|access denied.*|permission denied.*|not authorized.*|authorization required.*)\\s*</title>"
+          - "(?i)<h1>\\s*(403.*|access denied.*|permission denied.*|not authorized.*|authorization required.*)\\s*</h1>"
+          - "(?i)<p>\\s*(you do not have permission.*|forbidden.*|access denied.*)\\s*</p>"
+
+        name: "403-forbidden-detected-in-body"
+
+      # Detect 404 Not Found Message in Header or Body
+      - type: status
+        status:
+          - 404
+        name: "404-not-found"
+
+      - type: regex
+        part: header
+        regex:
+          - "(?i)(404|not[ -]?found|page[ -]?not[ -]?found|resource[ -]?not[ -]?found|requested[ -]?page[ -]?not[ -]?found|file[ -]?not[ -]?found)"
+        name: "404-not-found-detected-in-header"
+
+      - type: regex
+        part: body
+        regex:
+          - "(?i)(404|not[ -]?found|page[ -]?not[ -]?found|resource[ -]?not[ -]?found|requested[ -]?page[ -]?not[ -]?found|file[ -]?not[ -]?found)"
+        name: "404-not-found-detected-in-body"
+           
+      # Detect 500s Service Unvailable Message in Header or Body
+      - type: status
+        status:
+          - 500
+          - 501
+          - 502
+          - 503
+          - 504
+        name: "500-service-errors"
+
+      - type: regex
+        part: header
+        regex:
+          - "(?i)(500\\s+Internal Server Error.*|server error.*|application error.*|an unexpected error occurred.*|unable to process your request.*|something went wrong.*|gateway timeout.*|service unavailable.*|bad gateway.*|not implemented.*)"
+          - "(?i)<title>\\s*(500.*|internal server error.*|server error.*|error page.*|service unavailable.*|gateway timeout.*)\\s*</title>"
+          - "(?i)<h1>\\s*(500.*|internal server error.*|server error.*|error page.*|service unavailable.*|gateway timeout.*)\\s*</h1>"
+          - "(?i)<p>\\s*(an unexpected error occurred.*|we are experiencing technical difficulties.*|please try again later.*)\\s*</p>"
+        name: "500-service-errors-detected-in-header"
+
+      - type: regex
+        part: body
+        regex:
+          - "(?i)(500\\s+Internal Server Error.*|server error.*|application error.*|an unexpected error occurred.*|unable to process your request.*|something went wrong.*|gateway timeout.*|service unavailable.*|bad gateway.*|not implemented.*)"
+          - "(?i)<title>\\s*(500.*|internal server error.*|server error.*|error page.*|service unavailable.*|gateway timeout.*)\\s*</title>"
+          - "(?i)<h1>\\s*(500.*|internal server error.*|server error.*|error page.*|service unavailable.*|gateway timeout.*)\\s*</h1>"
+          - "(?i)<p>\\s*(an unexpected error occurred.*|we are experiencing technical difficulties.*|please try again later.*)\\s*</p>"
+        name: "500-service-errors-detected-in-body"
+     
